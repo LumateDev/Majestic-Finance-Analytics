@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { ElMessage, type UploadFile, type UploadRawFile } from 'element-plus';
-import { UploadFilled } from '@element-plus/icons-vue'
 
 defineProps<{ isLoading: boolean }>();
 const emit = defineEmits(['process-file']);
@@ -33,6 +32,23 @@ const submit = () => {
 
 <template>
   <el-card class="uploader-card" shadow="never">
+    <el-alert
+      title="Как получить файл для анализа?"
+      type="info"
+      :closable="false"
+      show-icon
+      class="instructions-alert"
+    >
+      <ol class="instructions-list">
+        <li>Откройте **Telegram Desktop** и найдите чат с ботом <strong>Majestic</strong>.</li>
+        <li>Нажмите на <strong>⋮</strong> в правом верхнем углу и выберите "Экспорт истории чата".</li>
+        <li>В настройках экспорта выберите формат **JSON**.</li>
+        <li>Перетащите полученный файл <code>result.json</code> в область ниже.</li>
+      </ol>
+    </el-alert>
+
+    <el-divider />
+
     <el-upload
       v-model:file-list="fileList"
       drag
@@ -46,11 +62,11 @@ const submit = () => {
     >
       <el-icon class="el-icon--upload"><upload-filled /></el-icon>
       <div class="el-upload__text">
-        Перетащите файл сюда или <em>кликните для загрузки</em>
+        Перетащите файл <code>result.json</code> сюда
       </div>
       <template #tip>
         <div class="el-upload__tip">
-          Загрузите один файл в формате .json
+          Все данные обрабатываются в вашем браузере и никуда не отправляются
         </div>
       </template>
     </el-upload>
@@ -71,9 +87,28 @@ const submit = () => {
 <style lang="scss" scoped>
 .uploader-card {
   width: 100%;
-  max-width: 500px;
+  max-width: 550px;
   border: none;
 }
+
+.instructions-alert {
+  text-align: left;
+}
+
+.instructions-list {
+  padding-left: 20px;
+  margin: 10px 0 0 0;
+
+  li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+}
+
+.el-divider {
+  margin: 24px 0;
+}
+
 .process-button {
   width: 100%;
   margin-top: 1.5rem;

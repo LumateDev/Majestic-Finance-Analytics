@@ -40,7 +40,7 @@ const { isLoading, analysisResult, errorMessage, processFile } = useHistoryProce
 
 <style lang="scss" scoped>
 .main-layout {
-  min-height: 100vh;
+  min-height: 80vh;
   padding: 2rem 1rem;
 }
 
