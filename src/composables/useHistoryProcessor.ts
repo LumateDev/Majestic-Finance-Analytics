@@ -1,5 +1,7 @@
 import { ref } from 'vue';
-import type { AnalysisResult, FinancialEvent } from '@/types/analysis';
+import type { AnalysisResult, FinancialEvent, TelegramExport } from '@/types/analysis';
+
+
 
 export function useHistoryProcessor() {
   const isLoading = ref(false);
@@ -21,25 +23,27 @@ export function useHistoryProcessor() {
     errorMessage.value = null;
 
     try {
-      const htmlContent = await readFileAsText(file);
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(htmlContent, 'text/html');
-      const messageNodes = doc.querySelectorAll('div.message.default');
+      const jsonContent = await readFileAsText(file);
+      const data: TelegramExport = JSON.parse(jsonContent);
+      if (!data.messages || !Array.isArray(data.messages)) {
+        throw new Error("Неверный формат JSON. Отсутствует массив 'messages'.");
+      }
+
       const parsedEvents: FinancialEvent[] = [];
+
       const rentRegex = /Сервер: (.*?)\s*Персонаж: .*?\s*Транспорт: (.*?)\s*Цена: \$(.*?)\s*Длительность: .*?\s*Арендатор: (.*)/s;
       const storageRegex = /Предмет: (.*?)\nКоличество: (\d+)/s;
 
-      for (const node of messageNodes) {
-        const dateTitle = node.querySelector('div.date.details')?.getAttribute('title');
-        const textContent = node.querySelector('div.text')?.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+      for (const message of data.messages) {
+        if (message.from !== 'Majestic') continue;
 
-        if (!dateTitle || !textContent) continue;
+        const textContent = Array.isArray(message.text)
+          ? message.text.map(item => typeof item === 'string' ? item : item.text).join('')
+          : message.text;
 
-        const dateMatch = dateTitle.match(/(\d{2}\.\d{2}\.\d{4}\s\d{2}:\d{2}:\d{2})/);
-        if (!dateMatch) continue;
+        if (!textContent) continue;
 
-        const [day, month, year, time] = dateMatch[0].split(/[.\s]/);
-        const timestamp = new Date(`${year}-${month}-${day}T${time}`).toISOString();
+        const timestamp = new Date(message.date).toISOString();
 
         const rentMatch = textContent.match(rentRegex);
         if (rentMatch) {
@@ -47,7 +51,7 @@ export function useHistoryProcessor() {
           parsedEvents.push({
             timestamp,
             eventType: 'Аренда',
-            server: rentMatch[1].trim(), // Сохраняем сервер
+            server: rentMatch[1].trim(),
             itemName: rentMatch[2].trim(),
             price: parseFloat(priceStr),
             renterName: rentMatch[4].trim(),
@@ -67,15 +71,13 @@ export function useHistoryProcessor() {
       }
 
       if (parsedEvents.length === 0) {
-        throw new Error("Не найдено ни одного события. Убедитесь, что файл экспортирован правильно.");
+        throw new Error("Не найдено ни одного релевантного события в файле.");
       }
 
       const rentEvents = parsedEvents.filter(e => e.eventType === 'Аренда');
       const servers = [...new Set(rentEvents.map(e => e.server).filter(Boolean) as string[])];
       const vehicles = [...new Set(rentEvents.map(e => e.itemName).filter(Boolean) as string[])];
-
       const totalRevenue = rentEvents.reduce((sum, event) => sum + (event.price || 0), 0);
-
       const revenueByVehicle = rentEvents.reduce((acc, event) => {
         acc[event.itemName!] = (acc[event.itemName!] || 0) + (event.price || 0);
         return acc;
@@ -91,16 +93,16 @@ export function useHistoryProcessor() {
       };
 
     } catch (error: any) {
-      console.error('Ошибка при обработке файла:', error);
-      errorMessage.value = error.message || 'Произошла неизвестная ошибка при обработке файла.';
+      console.error('Ошибка при обработке JSON файла:', error);
+      errorMessage.value = error.message.includes("Unexpected token")
+        ? "Ошибка: файл не является корректным JSON. Пожалуйста, экспортируйте заново."
+        : error.message;
     } finally {
       isLoading.value = false;
     }
   };
 
-  const reset = () => {
-
-  };
+  const reset = () => { analysisResult.value = null; errorMessage.value = null; };
 
   return { isLoading, analysisResult, errorMessage, processFile, reset };
 }

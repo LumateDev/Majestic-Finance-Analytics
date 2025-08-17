@@ -1,3 +1,17 @@
+interface TelegramMessage {
+  id: number;
+  type: string;
+  date: string;
+  from: string;
+  text: string | (string | { type: string; text: string })[];
+}
+
+export interface TelegramExport {
+  name: string;
+  messages: TelegramMessage[];
+}
+
+
 
 export interface FinancialEvent {
   timestamp: string;

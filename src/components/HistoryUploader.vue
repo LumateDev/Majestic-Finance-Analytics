@@ -1,9 +1,7 @@
-<!-- src/components/HistoryUploader.vue -->
 <script setup lang="ts">
 import { ref } from 'vue';
 import { ElMessage, type UploadFile, type UploadRawFile } from 'element-plus';
 import { UploadFilled } from '@element-plus/icons-vue'
-
 
 defineProps<{ isLoading: boolean }>();
 const emit = defineEmits(['process-file']);
@@ -11,13 +9,12 @@ const emit = defineEmits(['process-file']);
 const fileList = ref<UploadFile[]>([]);
 
 const handleBeforeUpload = (rawFile: UploadRawFile) => {
-  if (rawFile.type !== 'text/html') {
-    ElMessage.error('Файл должен быть в формате .html');
+  if (rawFile.type !== 'application/json') {
+    ElMessage.error('Файл должен быть в формате .json');
     return false;
   }
   return true;
 };
-
 
 const handleChange = (uploadFile: UploadFile) => {
   fileList.value = [uploadFile];
@@ -45,6 +42,7 @@ const submit = () => {
       :before-upload="handleBeforeUpload"
       :on-change="handleChange"
       :on-remove="handleRemove"
+      accept=".json"
     >
       <el-icon class="el-icon--upload"><upload-filled /></el-icon>
       <div class="el-upload__text">
@@ -52,7 +50,7 @@ const submit = () => {
       </div>
       <template #tip>
         <div class="el-upload__tip">
-          Загрузите один файл в формате .html
+          Загрузите один файл в формате .json
         </div>
       </template>
     </el-upload>
